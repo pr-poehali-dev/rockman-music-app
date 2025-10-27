@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
 import Icon from '@/components/ui/icon';
 
 type Track = {
@@ -47,6 +48,23 @@ type User = {
   commonTracks: number;
 };
 
+type Concert = {
+  id: number;
+  bandId: number;
+  city: string;
+  venue: string;
+  date: string;
+  price: string;
+};
+
+type Achievement = {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+};
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'bands' | 'upload' | 'playlists' | 'profile'>('home');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -67,8 +85,12 @@ const Index = () => {
   const [showReviews, setShowReviews] = useState(false);
   const [selectedItemForReview, setSelectedItemForReview] = useState<{type: 'track' | 'band', id: number} | null>(null);
   const [showCommunity, setShowCommunity] = useState(false);
+  const [showConcerts, setShowConcerts] = useState(false);
+  const [selectedBandForConcerts, setSelectedBandForConcerts] = useState<number | null>(null);
+  const [showAchievements, setShowAchievements] = useState(false);
   const [newReviewText, setNewReviewText] = useState('');
   const [newReviewRating, setNewReviewRating] = useState(5);
+  const [listenTime, setListenTime] = useState(12847);
 
   const trendingTracks: Track[] = [
     { id: 1, title: 'Enter Sandman', artist: 'Metallica', album: 'Metallica', duration: '5:32', genre: 'Metal' },
@@ -105,6 +127,22 @@ const Index = () => {
     { id: 6, name: 'Король и Шут', genre: 'Punk Rock', listeners: '5.3M' },
     { id: 7, name: 'Кино', genre: 'Rock', listeners: '7.8M' },
     { id: 8, name: 'Сектор Газа', genre: 'Punk Rock', listeners: '4.1M' },
+  ];
+
+  const concerts: Concert[] = [
+    { id: 1, bandId: 1, city: 'Москва', venue: 'Лужники', date: '15 декабря 2025', price: 'от 3500₽' },
+    { id: 2, bandId: 1, city: 'Санкт-Петербург', venue: 'Ледовый дворец', date: '18 декабря 2025', price: 'от 3000₽' },
+    { id: 3, bandId: 6, city: 'Москва', venue: 'Adrenaline Stadium', date: '1 января 2026', price: 'от 2000₽' },
+    { id: 4, bandId: 7, city: 'Екатеринбург', venue: 'Teleclub', date: '25 ноября 2025', price: 'от 1500₽' },
+  ];
+
+  const achievements: Achievement[] = [
+    { id: 1, title: 'Первый шаг', description: 'Прослушайте первый трек', icon: 'Play', unlocked: true },
+    { id: 2, title: 'Меломан', description: 'Прослушайте 100 треков', icon: 'Music', unlocked: true },
+    { id: 3, title: 'Коллекционер', description: 'Добавьте 50 треков в избранное', icon: 'Heart', unlocked: false },
+    { id: 4, title: 'Социальный', description: 'Добавьте 10 друзей', icon: 'Users', unlocked: false },
+    { id: 5, title: 'Критик', description: 'Оставьте 20 отзывов', icon: 'MessageSquare', unlocked: false },
+    { id: 6, title: 'Ночной слушатель', description: 'Слушайте музыку 5 ночей подряд', icon: 'Moon', unlocked: true },
   ];
 
   const playTrack = (track: Track) => {
@@ -234,6 +272,21 @@ const Index = () => {
     return band ? band.name : '';
   };
 
+  const openConcerts = (bandId: number) => {
+    setSelectedBandForConcerts(bandId);
+    setShowConcerts(true);
+  };
+
+  const getBandConcerts = () => {
+    if (!selectedBandForConcerts) return [];
+    return concerts.filter(c => c.bandId === selectedBandForConcerts);
+  };
+
+  const getBandName = (bandId: number) => {
+    const band = topBands.find(b => b.id === bandId);
+    return band ? band.name : '';
+  };
+
   return (
     <div className="min-h-screen bg-black text-white pb-32">
       <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-primary/20">
@@ -256,10 +309,20 @@ const Index = () => {
                 <Icon name="Search" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
               </div>
             </div>
-            <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-black">
-              <Icon name="User" size={18} className="mr-2" />
-              Профиль
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                className="border-primary text-primary hover:bg-primary hover:text-black"
+                onClick={() => setShowAchievements(true)}
+              >
+                <Icon name="Trophy" size={18} className="mr-2" />
+                Достижения
+              </Button>
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-black">
+                <Icon name="User" size={18} className="mr-2" />
+                Профиль
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -277,7 +340,7 @@ const Index = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-6 py-3 transition-all relative ${
+                className={`flex items-center gap-2 px-6 py-3 transition-all ${
                   activeTab === tab.id
                     ? 'text-primary border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-white'
@@ -293,9 +356,9 @@ const Index = () => {
             >
               <Icon name="Users" size={18} />
               <span className="font-medium">Сообщество</span>
-              <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-accent text-white">
+              <Badge className="ml-1 bg-accent text-white border-0">
                 {suggestedUsers.length}
-              </span>
+              </Badge>
             </button>
           </div>
         </div>
@@ -347,7 +410,7 @@ const Index = () => {
                             }}
                           >
                             <Icon 
-                              name={favoriteTracks.includes(track.id) ? "Heart" : "Heart"} 
+                              name="Heart" 
                               size={20}
                               className={favoriteTracks.includes(track.id) ? "fill-accent text-accent" : ""}
                             />
@@ -409,61 +472,34 @@ const Index = () => {
                           {band.listeners} слушателей
                         </span>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="flex-1 border-secondary text-secondary hover:bg-secondary hover:text-black">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button size="sm" variant="outline" className="border-secondary text-secondary hover:bg-secondary hover:text-black">
                           Слушать
                         </Button>
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          className="border-primary/20 hover:border-primary hover:text-primary"
-                          onClick={() => openReviews('band', band.id)}
+                          className="border-accent text-accent hover:bg-accent hover:text-white"
+                          onClick={() => openConcerts(band.id)}
                         >
-                          <Icon name="MessageSquare" size={16} />
+                          <Icon name="Calendar" size={16} className="mr-1" />
+                          Концерты
                         </Button>
                       </div>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="w-full mt-2 hover:text-primary"
+                        onClick={() => openReviews('band', band.id)}
+                      >
+                        <Icon name="MessageSquare" size={16} className="mr-2" />
+                        Отзывы
+                      </Button>
                     </div>
                   </Card>
                 ))}
               </div>
             </section>
-          </div>
-        )}
-
-        {activeTab === 'upload' && (
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-center gap-3 mb-6">
-              <Icon name="Upload" size={28} className="text-accent" />
-              <h2 className="text-3xl font-bold">Загрузить трек</h2>
-            </div>
-            <Card className="bg-card border-primary/10 p-8">
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Название трека</label>
-                  <Input placeholder="Введите название..." className="bg-muted border-primary/20" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Исполнитель</label>
-                  <Input placeholder="Имя группы или артиста..." className="bg-muted border-primary/20" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Жанр</label>
-                  <Input placeholder="Например: Thrash Metal..." className="bg-muted border-primary/20" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Аудиофайл</label>
-                  <div className="border-2 border-dashed border-primary/30 rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                    <Icon name="Upload" size={48} className="mx-auto mb-4 text-primary" />
-                    <p className="text-muted-foreground mb-2">Перетащите файл сюда или нажмите для выбора</p>
-                    <p className="text-sm text-muted-foreground">MP3, WAV, FLAC (макс. 50MB)</p>
-                  </div>
-                </div>
-                <Button className="w-full bg-accent hover:bg-accent/90 text-white">
-                  <Icon name="Upload" size={20} className="mr-2" />
-                  Загрузить трек
-                </Button>
-              </div>
-            </Card>
           </div>
         )}
 
@@ -489,9 +525,18 @@ const Index = () => {
                       <Icon name="Users" size={14} className="inline mr-1" />
                       {band.listeners}
                     </p>
-                    <div className="flex flex-col gap-2">
+                    <div className="space-y-2">
                       <Button size="sm" className="w-full bg-secondary hover:bg-secondary/90 text-black">
                         Слушать
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="w-full border-accent text-accent hover:bg-accent hover:text-white"
+                        onClick={() => openConcerts(band.id)}
+                      >
+                        <Icon name="Calendar" size={16} className="mr-2" />
+                        Концерты
                       </Button>
                       <Button 
                         size="sm" 
@@ -505,122 +550,8 @@ const Index = () => {
                     </div>
                   </div>
                 </Card>
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-6 py-3 transition-all ${
-                  activeTab === tab.id
-                    ? 'text-primary border-b-2 border-primary'
-                    : 'text-muted-foreground hover:text-white'
-                }`}
-              >
-                <Icon name={tab.icon as any} size={18} />
-                <span className="font-medium">{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {activeTab === 'home' && (
-          <div className="space-y-8">
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <Icon name="TrendingUp" size={28} className="text-primary" />
-                <h2 className="text-3xl font-bold">Популярное сейчас</h2>
-              </div>
-              <div className="grid gap-4">
-                {trendingTracks.map((track) => (
-                  <Card 
-                    key={track.id} 
-                    className="bg-card border-primary/10 hover:border-primary/30 transition-all group cursor-pointer"
-                    onClick={() => playTrack(track)}
-                  >
-                    <div className="flex items-center gap-4 p-4">
-                      <Button 
-                        size="icon" 
-                        className="bg-primary text-black hover:bg-primary/90 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Icon name="Play" size={20} />
-                      </Button>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-lg truncate">{track.title}</h3>
-                        <p className="text-sm text-muted-foreground">{track.artist} • {track.album}</p>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <span className="text-sm px-3 py-1 rounded-full bg-secondary/20 text-secondary">
-                          {track.genre}
-                        </span>
-                        <span className="text-sm text-muted-foreground">{track.duration}</span>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-muted-foreground hover:text-accent"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite(track.id);
-                          }}
-                        >
-                          <Icon 
-                            name={favoriteTracks.includes(track.id) ? "Heart" : "Heart"} 
-                            size={20}
-                            className={favoriteTracks.includes(track.id) ? "fill-accent text-accent" : ""}
-                          />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-muted-foreground hover:text-primary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openPlaylistDialog(track);
-                          }}
-                        >
-                          <Icon name="ListPlus" size={20} />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <div className="flex items-center gap-3 mb-6">
-                <Icon name="Music2" size={28} className="text-secondary" />
-                <h2 className="text-3xl font-bold">Топ-группы</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {topBands.map((band) => (
-                  <Card 
-                    key={band.id} 
-                    className="bg-card border-primary/10 hover:border-secondary/50 transition-all cursor-pointer group"
-                  >
-                    <div className="p-6">
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-2xl font-bold">
-                          {band.name[0]}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-xl">{band.name}</h3>
-                          <p className="text-sm text-muted-foreground">{band.genre}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          <Icon name="Users" size={16} className="inline mr-1" />
-                          {band.listeners} слушателей
-                        </span>
-                        <Button size="sm" variant="outline" className="border-secondary text-secondary hover:bg-secondary hover:text-black">
-                          Слушать
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </section>
+              ))}
+            </div>
           </div>
         )}
 
@@ -658,38 +589,6 @@ const Index = () => {
                 </Button>
               </div>
             </Card>
-          </div>
-        )}
-
-        {activeTab === 'bands' && (
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <Icon name="Music2" size={28} className="text-secondary" />
-              <h2 className="text-3xl font-bold">Все группы</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {topBands.map((band) => (
-                <Card 
-                  key={band.id} 
-                  className="bg-card border-primary/10 hover:border-secondary/50 transition-all cursor-pointer"
-                >
-                  <div className="p-6 text-center">
-                    <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-3xl font-bold">
-                      {band.name[0]}
-                    </div>
-                    <h3 className="font-bold text-lg mb-1">{band.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{band.genre}</p>
-                    <p className="text-xs text-muted-foreground mb-4">
-                      <Icon name="Users" size={14} className="inline mr-1" />
-                      {band.listeners}
-                    </p>
-                    <Button size="sm" className="w-full bg-secondary hover:bg-secondary/90 text-black">
-                      Слушать
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
           </div>
         )}
 
@@ -764,33 +663,64 @@ const Index = () => {
               <Icon name="User" size={28} className="text-primary" />
               <h2 className="text-3xl font-bold">Мой профиль</h2>
             </div>
-            <Card className="bg-card border-primary/10 p-8">
+            <Card className="bg-card border-primary/10 p-8 mb-6">
               <div className="flex items-center gap-6 mb-8">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-3xl font-bold">
                   РМ
                 </div>
                 <div className="flex-1">
                   <h3 className="text-2xl font-bold mb-2">Рок-Маньяк</h3>
-                  <p className="text-muted-foreground">Любитель качественного звука</p>
+                  <p className="text-muted-foreground mb-2">Любитель качественного звука</p>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-primary text-black">Уровень 12</Badge>
+                    <Badge className="bg-secondary text-black">Топ-10 слушателей</Badge>
+                  </div>
                 </div>
                 <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-black">
                   Редактировать
                 </Button>
               </div>
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold text-primary">42</p>
-                  <p className="text-sm text-muted-foreground">Треков загружено</p>
+                  <p className="text-2xl font-bold text-primary">{listenTime}</p>
+                  <p className="text-sm text-muted-foreground">Минут прослушано</p>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold text-secondary">156</p>
+                  <p className="text-2xl font-bold text-secondary">{favoriteTracks.length}</p>
                   <p className="text-sm text-muted-foreground">Любимых</p>
                 </div>
                 <div className="text-center p-4 bg-muted rounded-lg">
-                  <p className="text-2xl font-bold text-accent">8</p>
+                  <p className="text-2xl font-bold text-accent">{playlists.length}</p>
                   <p className="text-sm text-muted-foreground">Плейлистов</p>
                 </div>
               </div>
+            </Card>
+
+            <Card className="bg-card border-primary/10 p-6">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Icon name="Trophy" size={20} className="text-primary" />
+                Последние достижения
+              </h3>
+              <div className="space-y-3">
+                {achievements.filter(a => a.unlocked).slice(0, 3).map(achievement => (
+                  <div key={achievement.id} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                      <Icon name={achievement.icon as any} size={20} className="text-black" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold">{achievement.title}</p>
+                      <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button 
+                variant="outline" 
+                className="w-full mt-4 border-primary/20 hover:border-primary hover:text-primary"
+                onClick={() => setShowAchievements(true)}
+              >
+                Посмотреть все достижения
+              </Button>
             </Card>
           </div>
         )}
@@ -998,6 +928,113 @@ const Index = () => {
                       <Icon name="UserPlus" size={16} className="mr-2" />
                       Добавить
                     </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showConcerts && selectedBandForConcerts && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowConcerts(false)}>
+          <Card className="bg-card border-primary/20 p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold">Концерты</h3>
+                <p className="text-sm text-muted-foreground">{getBandName(selectedBandForConcerts)}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowConcerts(false)}>
+                <Icon name="X" size={20} />
+              </Button>
+            </div>
+
+            {getBandConcerts().length === 0 ? (
+              <div className="text-center py-12">
+                <Icon name="Calendar" size={64} className="mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Концертов пока нет</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {getBandConcerts().map(concert => (
+                  <Card key={concert.id} className="bg-muted/50 border-primary/10 p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-xl mb-2">{concert.city}</h4>
+                        <div className="space-y-1 text-sm text-muted-foreground">
+                          <p className="flex items-center gap-2">
+                            <Icon name="MapPin" size={16} className="text-accent" />
+                            {concert.venue}
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <Icon name="Calendar" size={16} className="text-primary" />
+                            {concert.date}
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <Icon name="Ticket" size={16} className="text-secondary" />
+                            {concert.price}
+                          </p>
+                        </div>
+                      </div>
+                      <Button className="bg-accent hover:bg-accent/90 text-white">
+                        Купить билет
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {showAchievements && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowAchievements(false)}>
+          <Card className="bg-card border-primary/20 p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold flex items-center gap-2">
+                  <Icon name="Trophy" size={28} className="text-primary" />
+                  Достижения
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Получено {achievements.filter(a => a.unlocked).length} из {achievements.length}
+                </p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowAchievements(false)}>
+                <Icon name="X" size={20} />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {achievements.map(achievement => (
+                <Card 
+                  key={achievement.id} 
+                  className={`p-6 ${
+                    achievement.unlocked 
+                      ? 'bg-muted/50 border-primary/20' 
+                      : 'bg-muted/20 border-muted opacity-50'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      achievement.unlocked
+                        ? 'bg-gradient-to-br from-primary to-secondary'
+                        : 'bg-muted'
+                    }`}>
+                      <Icon 
+                        name={achievement.icon as any} 
+                        size={24} 
+                        className={achievement.unlocked ? 'text-black' : 'text-muted-foreground'}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold mb-1">{achievement.title}</h4>
+                      <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                      {achievement.unlocked && (
+                        <Badge className="mt-2 bg-primary text-black border-0">Получено</Badge>
+                      )}
+                    </div>
                   </div>
                 </Card>
               ))}
