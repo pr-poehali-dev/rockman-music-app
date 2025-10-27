@@ -40,6 +40,8 @@ const Index = () => {
   ]);
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
   const [selectedTrackForPlaylist, setSelectedTrackForPlaylist] = useState<Track | null>(null);
+  const [showCreatePlaylistDialog, setShowCreatePlaylistDialog] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
 
   const trendingTracks: Track[] = [
     { id: 1, title: 'Enter Sandman', artist: 'Metallica', album: 'Metallica', duration: '5:32', genre: 'Metal' },
@@ -107,6 +109,25 @@ const Index = () => {
     const playlist = playlists.find(p => p.id === playlistId);
     if (!playlist) return [];
     return trendingTracks.filter(track => playlist.trackIds.includes(track.id));
+  };
+
+  const createPlaylist = () => {
+    if (!newPlaylistName.trim()) return;
+    
+    const newPlaylist: Playlist = {
+      id: Math.max(...playlists.map(p => p.id), 0) + 1,
+      name: newPlaylistName.trim(),
+      trackIds: []
+    };
+    
+    setPlaylists([...playlists, newPlaylist]);
+    setNewPlaylistName('');
+    setShowCreatePlaylistDialog(false);
+  };
+
+  const deletePlaylist = (playlistId: number) => {
+    if (playlistId === 1) return;
+    setPlaylists(playlists.filter(p => p.id !== playlistId));
   };
 
   return (
@@ -339,14 +360,33 @@ const Index = () => {
 
         {activeTab === 'playlists' && (
           <div>
-            <div className="flex items-center gap-3 mb-6">
-              <Icon name="ListMusic" size={28} className="text-primary" />
-              <h2 className="text-3xl font-bold">Мои плейлисты</h2>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <Icon name="ListMusic" size={28} className="text-primary" />
+                <h2 className="text-3xl font-bold">Мои плейлисты</h2>
+              </div>
+              <Button 
+                className="bg-primary hover:bg-primary/90 text-black"
+                onClick={() => setShowCreatePlaylistDialog(true)}
+              >
+                <Icon name="Plus" size={20} className="mr-2" />
+                Создать плейлист
+              </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {playlists.map((playlist) => (
-                <Card key={playlist.id} className="bg-card border-primary/10 hover:border-primary/30 transition-all cursor-pointer group">
+                <Card key={playlist.id} className="bg-card border-primary/10 hover:border-primary/30 transition-all group relative">
                   <div className="p-6">
+                    {playlist.id !== 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-accent"
+                        onClick={() => deletePlaylist(playlist.id)}
+                      >
+                        <Icon name="Trash2" size={18} />
+                      </Button>
+                    )}
                     <div className="w-full aspect-square rounded-lg bg-gradient-to-br from-primary via-secondary to-accent mb-4 flex items-center justify-center">
                       <Icon name="Music" size={64} className="text-black/50" />
                     </div>
@@ -419,6 +459,49 @@ const Index = () => {
           </div>
         )}
       </main>
+
+      {showCreatePlaylistDialog && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowCreatePlaylistDialog(false)}>
+          <Card className="bg-card border-primary/20 p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Создать плейлист</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowCreatePlaylistDialog(false)}>
+                <Icon name="X" size={20} />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Название плейлиста</label>
+                <Input 
+                  placeholder="Например: Моя коллекция металла..."
+                  className="bg-muted border-primary/20"
+                  value={newPlaylistName}
+                  onChange={(e) => setNewPlaylistName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && createPlaylist()}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  className="flex-1 bg-primary hover:bg-primary/90 text-black"
+                  onClick={createPlaylist}
+                  disabled={!newPlaylistName.trim()}
+                >
+                  <Icon name="Plus" size={20} className="mr-2" />
+                  Создать
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 border-primary/20"
+                  onClick={() => setShowCreatePlaylistDialog(false)}
+                >
+                  Отмена
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {showPlaylistDialog && selectedTrackForPlaylist && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowPlaylistDialog(false)}>
