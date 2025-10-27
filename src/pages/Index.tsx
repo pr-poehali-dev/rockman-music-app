@@ -21,11 +21,25 @@ type Band = {
   listeners: string;
 };
 
+type Playlist = {
+  id: number;
+  name: string;
+  trackIds: number[];
+};
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'bands' | 'upload' | 'playlists' | 'profile'>('home');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [volume, setVolume] = useState([70]);
+  const [favoriteTracks, setFavoriteTracks] = useState<number[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([
+    { id: 1, name: 'Любимое', trackIds: [] },
+    { id: 2, name: 'Рок классика', trackIds: [] },
+    { id: 3, name: 'Метал 2024', trackIds: [] },
+  ]);
+  const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
+  const [selectedTrackForPlaylist, setSelectedTrackForPlaylist] = useState<Track | null>(null);
 
   const trendingTracks: Track[] = [
     { id: 1, title: 'Enter Sandman', artist: 'Metallica', album: 'Metallica', duration: '5:32', genre: 'Metal' },
@@ -50,6 +64,49 @@ const Index = () => {
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
+  };
+
+  const toggleFavorite = (trackId: number) => {
+    setFavoriteTracks(prev => 
+      prev.includes(trackId) 
+        ? prev.filter(id => id !== trackId)
+        : [...prev, trackId]
+    );
+    
+    setPlaylists(prev => prev.map(playlist => 
+      playlist.id === 1 
+        ? { 
+            ...playlist, 
+            trackIds: favoriteTracks.includes(trackId)
+              ? playlist.trackIds.filter(id => id !== trackId)
+              : [...playlist.trackIds, trackId]
+          }
+        : playlist
+    ));
+  };
+
+  const openPlaylistDialog = (track: Track) => {
+    setSelectedTrackForPlaylist(track);
+    setShowPlaylistDialog(true);
+  };
+
+  const addToPlaylist = (playlistId: number) => {
+    if (!selectedTrackForPlaylist) return;
+    
+    setPlaylists(prev => prev.map(playlist => 
+      playlist.id === playlistId && !playlist.trackIds.includes(selectedTrackForPlaylist.id)
+        ? { ...playlist, trackIds: [...playlist.trackIds, selectedTrackForPlaylist.id] }
+        : playlist
+    ));
+    
+    setShowPlaylistDialog(false);
+    setSelectedTrackForPlaylist(null);
+  };
+
+  const getPlaylistTracks = (playlistId: number): Track[] => {
+    const playlist = playlists.find(p => p.id === playlistId);
+    if (!playlist) return [];
+    return trendingTracks.filter(track => playlist.trackIds.includes(track.id));
   };
 
   return (
@@ -140,8 +197,31 @@ const Index = () => {
                           {track.genre}
                         </span>
                         <span className="text-sm text-muted-foreground">{track.duration}</span>
-                        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-accent">
-                          <Icon name="Heart" size={20} />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-muted-foreground hover:text-accent"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(track.id);
+                          }}
+                        >
+                          <Icon 
+                            name={favoriteTracks.includes(track.id) ? "Heart" : "Heart"} 
+                            size={20}
+                            className={favoriteTracks.includes(track.id) ? "fill-accent text-accent" : ""}
+                          />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-muted-foreground hover:text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPlaylistDialog(track);
+                          }}
+                        >
+                          <Icon name="ListPlus" size={20} />
                         </Button>
                       </div>
                     </div>
@@ -264,20 +344,37 @@ const Index = () => {
               <h2 className="text-3xl font-bold">Мои плейлисты</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {['Любимое', 'Рок классика', 'Метал 2024'].map((playlist, idx) => (
-                <Card key={idx} className="bg-card border-primary/10 hover:border-primary/30 transition-all cursor-pointer group">
+              {playlists.map((playlist) => (
+                <Card key={playlist.id} className="bg-card border-primary/10 hover:border-primary/30 transition-all cursor-pointer group">
                   <div className="p-6">
                     <div className="w-full aspect-square rounded-lg bg-gradient-to-br from-primary via-secondary to-accent mb-4 flex items-center justify-center">
                       <Icon name="Music" size={64} className="text-black/50" />
                     </div>
-                    <h3 className="font-bold text-xl mb-2">{playlist}</h3>
+                    <h3 className="font-bold text-xl mb-2">{playlist.name}</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      {Math.floor(Math.random() * 50) + 10} треков
+                      {playlist.trackIds.length} {playlist.trackIds.length === 1 ? 'трек' : playlist.trackIds.length < 5 ? 'трека' : 'треков'}
                     </p>
-                    <Button size="sm" className="w-full bg-primary hover:bg-primary/90 text-black">
+                    <Button 
+                      size="sm" 
+                      className="w-full bg-primary hover:bg-primary/90 text-black"
+                      disabled={playlist.trackIds.length === 0}
+                    >
                       <Icon name="Play" size={16} className="mr-2" />
-                      Слушать
+                      {playlist.trackIds.length === 0 ? 'Пусто' : 'Слушать'}
                     </Button>
+                    {playlist.trackIds.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-primary/10">
+                        <p className="text-xs text-muted-foreground mb-2">Треки:</p>
+                        <div className="space-y-1">
+                          {getPlaylistTracks(playlist.id).slice(0, 3).map(track => (
+                            <p key={track.id} className="text-xs truncate">{track.title}</p>
+                          ))}
+                          {playlist.trackIds.length > 3 && (
+                            <p className="text-xs text-muted-foreground">+{playlist.trackIds.length - 3} ещё</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </Card>
               ))}
@@ -323,6 +420,43 @@ const Index = () => {
         )}
       </main>
 
+      {showPlaylistDialog && selectedTrackForPlaylist && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowPlaylistDialog(false)}>
+          <Card className="bg-card border-primary/20 p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Добавить в плейлист</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowPlaylistDialog(false)}>
+                <Icon name="X" size={20} />
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              {selectedTrackForPlaylist.title} - {selectedTrackForPlaylist.artist}
+            </p>
+            <div className="space-y-2">
+              {playlists.map(playlist => (
+                <Button
+                  key={playlist.id}
+                  variant="outline"
+                  className={`w-full justify-start ${
+                    playlist.trackIds.includes(selectedTrackForPlaylist.id)
+                      ? 'border-primary text-primary'
+                      : 'border-primary/20'
+                  }`}
+                  onClick={() => addToPlaylist(playlist.id)}
+                  disabled={playlist.trackIds.includes(selectedTrackForPlaylist.id)}
+                >
+                  <Icon name="ListMusic" size={18} className="mr-2" />
+                  {playlist.name}
+                  {playlist.trackIds.includes(selectedTrackForPlaylist.id) && (
+                    <Icon name="Check" size={18} className="ml-auto" />
+                  )}
+                </Button>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
       {currentTrack && (
         <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-lg border-t border-primary/20 z-50">
           <div className="max-w-7xl mx-auto px-4 py-4">
@@ -335,8 +469,17 @@ const Index = () => {
                   <h4 className="font-semibold truncate">{currentTrack.title}</h4>
                   <p className="text-sm text-muted-foreground truncate">{currentTrack.artist}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-accent">
-                  <Icon name="Heart" size={20} />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-muted-foreground hover:text-accent"
+                  onClick={() => currentTrack && toggleFavorite(currentTrack.id)}
+                >
+                  <Icon 
+                    name="Heart" 
+                    size={20}
+                    className={currentTrack && favoriteTracks.includes(currentTrack.id) ? "fill-accent text-accent" : ""}
+                  />
                 </Button>
               </div>
 
