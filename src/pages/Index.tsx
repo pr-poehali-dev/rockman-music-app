@@ -27,6 +27,26 @@ type Playlist = {
   trackIds: number[];
 };
 
+type Review = {
+  id: number;
+  trackId?: number;
+  bandId?: number;
+  userName: string;
+  userAvatar: string;
+  rating: number;
+  text: string;
+  date: string;
+};
+
+type User = {
+  id: number;
+  name: string;
+  avatar: string;
+  favoriteGenres: string[];
+  bio: string;
+  commonTracks: number;
+};
+
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'bands' | 'upload' | 'playlists' | 'profile'>('home');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -42,6 +62,13 @@ const Index = () => {
   const [selectedTrackForPlaylist, setSelectedTrackForPlaylist] = useState<Track | null>(null);
   const [showCreatePlaylistDialog, setShowCreatePlaylistDialog] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState(0);
+  const [currentPlaylistTracks, setCurrentPlaylistTracks] = useState<Track[]>([]);
+  const [showReviews, setShowReviews] = useState(false);
+  const [selectedItemForReview, setSelectedItemForReview] = useState<{type: 'track' | 'band', id: number} | null>(null);
+  const [showCommunity, setShowCommunity] = useState(false);
+  const [newReviewText, setNewReviewText] = useState('');
+  const [newReviewRating, setNewReviewRating] = useState(5);
 
   const trendingTracks: Track[] = [
     { id: 1, title: 'Enter Sandman', artist: 'Metallica', album: 'Metallica', duration: '5:32', genre: 'Metal' },
@@ -49,6 +76,24 @@ const Index = () => {
     { id: 3, title: 'Paranoid', artist: 'Black Sabbath', album: 'Paranoid', duration: '2:50', genre: 'Metal' },
     { id: 4, title: 'Back in Black', artist: 'AC/DC', album: 'Back in Black', duration: '4:15', genre: 'Rock' },
     { id: 5, title: 'Kashmir', artist: 'Led Zeppelin', album: 'Physical Graffiti', duration: '8:37', genre: 'Rock' },
+    { id: 6, title: 'Кукла колдуна', artist: 'Король и Шут', album: 'Король и Шут', duration: '3:45', genre: 'Punk Rock' },
+    { id: 7, title: 'Группа крови', artist: 'Кино', album: 'Группа крови', duration: '4:42', genre: 'Rock' },
+    { id: 8, title: 'Лирика', artist: 'Сектор Газа', album: 'Кащей Бессмертный', duration: '3:18', genre: 'Punk Rock' },
+  ];
+
+  const reviews: Review[] = [
+    { id: 1, trackId: 1, userName: 'Рок-Маньяк', userAvatar: 'РМ', rating: 5, text: 'Легендарный трек! Metallica в лучшей форме!', date: '2 дня назад' },
+    { id: 2, trackId: 1, userName: 'MetalHead666', userAvatar: 'MH', rating: 5, text: 'Классика жанра, слушаю уже 20 лет', date: '5 дней назад' },
+    { id: 3, bandId: 1, userName: 'ThrashFan', userAvatar: 'TF', rating: 5, text: 'Metallica - короли трэш-метала!', date: '1 неделю назад' },
+    { id: 4, trackId: 7, userName: 'СоветскийРок', userAvatar: 'СР', rating: 5, text: 'Виктор Цой жив! Вечная классика', date: '3 дня назад' },
+    { id: 5, bandId: 6, userName: 'ПанкРокер', userAvatar: 'ПР', rating: 5, text: 'КиШ - лучшие в русском панке!', date: '1 день назад' },
+  ];
+
+  const suggestedUsers: User[] = [
+    { id: 1, name: 'MetalHead666', avatar: 'MH', favoriteGenres: ['Metal', 'Thrash Metal'], bio: 'Живу металлом 🤘', commonTracks: 42 },
+    { id: 2, name: 'RockStar92', avatar: 'RS', favoriteGenres: ['Rock', 'Hard Rock'], bio: 'Рок - это жизнь!', commonTracks: 38 },
+    { id: 3, name: 'GrungeLover', avatar: 'GL', favoriteGenres: ['Grunge', 'Rock'], bio: 'Nirvana forever', commonTracks: 31 },
+    { id: 4, name: 'РусскийРокер', avatar: 'РР', favoriteGenres: ['Punk Rock', 'Rock'], bio: 'Слушаю только наше!', commonTracks: 27 },
   ];
 
   const topBands: Band[] = [
@@ -136,8 +181,57 @@ const Index = () => {
   const playPlaylist = (playlistId: number) => {
     const tracks = getPlaylistTracks(playlistId);
     if (tracks.length > 0) {
+      setCurrentPlaylistTracks(tracks);
+      setCurrentPlaylistIndex(0);
       playTrack(tracks[0]);
     }
+  };
+
+  const playNextTrack = () => {
+    if (currentPlaylistTracks.length === 0) return;
+    
+    const nextIndex = (currentPlaylistIndex + 1) % currentPlaylistTracks.length;
+    setCurrentPlaylistIndex(nextIndex);
+    playTrack(currentPlaylistTracks[nextIndex]);
+  };
+
+  const playPreviousTrack = () => {
+    if (currentPlaylistTracks.length === 0) return;
+    
+    const prevIndex = currentPlaylistIndex === 0 ? currentPlaylistTracks.length - 1 : currentPlaylistIndex - 1;
+    setCurrentPlaylistIndex(prevIndex);
+    playTrack(currentPlaylistTracks[prevIndex]);
+  };
+
+  const openReviews = (type: 'track' | 'band', id: number) => {
+    setSelectedItemForReview({type, id});
+    setShowReviews(true);
+  };
+
+  const submitReview = () => {
+    if (!newReviewText.trim()) return;
+    setNewReviewText('');
+    setNewReviewRating(5);
+    setShowReviews(false);
+  };
+
+  const getReviewsForItem = () => {
+    if (!selectedItemForReview) return [];
+    return reviews.filter(r => 
+      selectedItemForReview.type === 'track' 
+        ? r.trackId === selectedItemForReview.id 
+        : r.bandId === selectedItemForReview.id
+    );
+  };
+
+  const getItemName = () => {
+    if (!selectedItemForReview) return '';
+    if (selectedItemForReview.type === 'track') {
+      const track = trendingTracks.find(t => t.id === selectedItemForReview.id);
+      return track ? `${track.title} - ${track.artist}` : '';
+    }
+    const band = topBands.find(b => b.id === selectedItemForReview.id);
+    return band ? band.name : '';
   };
 
   return (
@@ -180,6 +274,237 @@ const Index = () => {
               { id: 'playlists', label: 'Плейлисты', icon: 'ListMusic' },
               { id: 'profile', label: 'Профиль', icon: 'User' },
             ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-6 py-3 transition-all relative ${
+                  activeTab === tab.id
+                    ? 'text-primary border-b-2 border-primary'
+                    : 'text-muted-foreground hover:text-white'
+                }`}
+              >
+                <Icon name={tab.icon as any} size={18} />
+                <span className="font-medium">{tab.label}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setShowCommunity(true)}
+              className="flex items-center gap-2 px-6 py-3 transition-all text-muted-foreground hover:text-white ml-auto"
+            >
+              <Icon name="Users" size={18} />
+              <span className="font-medium">Сообщество</span>
+              <span className="ml-1 px-2 py-0.5 text-xs rounded-full bg-accent text-white">
+                {suggestedUsers.length}
+              </span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {activeTab === 'home' && (
+          <div className="space-y-8">
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                <Icon name="TrendingUp" size={28} className="text-primary" />
+                <h2 className="text-3xl font-bold">Популярное сейчас</h2>
+              </div>
+              <div className="grid gap-4">
+                {trendingTracks.map((track) => (
+                  <Card 
+                    key={track.id} 
+                    className="bg-card border-primary/10 hover:border-primary/30 transition-all group cursor-pointer"
+                    onClick={() => {
+                      setCurrentPlaylistTracks(trendingTracks);
+                      setCurrentPlaylistIndex(trendingTracks.indexOf(track));
+                      playTrack(track);
+                    }}
+                  >
+                    <div className="flex items-center gap-4 p-4">
+                      <Button 
+                        size="icon" 
+                        className="bg-primary text-black hover:bg-primary/90 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Icon name="Play" size={20} />
+                      </Button>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg truncate">{track.title}</h3>
+                        <p className="text-sm text-muted-foreground">{track.artist} • {track.album}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm px-3 py-1 rounded-full bg-secondary/20 text-secondary">
+                          {track.genre}
+                        </span>
+                        <span className="text-sm text-muted-foreground">{track.duration}</span>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-muted-foreground hover:text-accent"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(track.id);
+                            }}
+                          >
+                            <Icon 
+                              name={favoriteTracks.includes(track.id) ? "Heart" : "Heart"} 
+                              size={20}
+                              className={favoriteTracks.includes(track.id) ? "fill-accent text-accent" : ""}
+                            />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-muted-foreground hover:text-primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPlaylistDialog(track);
+                            }}
+                          >
+                            <Icon name="ListPlus" size={20} />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-muted-foreground hover:text-secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openReviews('track', track.id);
+                            }}
+                          >
+                            <Icon name="MessageSquare" size={20} />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                <Icon name="Music2" size={28} className="text-secondary" />
+                <h2 className="text-3xl font-bold">Топ-группы</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {topBands.slice(0, 6).map((band) => (
+                  <Card 
+                    key={band.id} 
+                    className="bg-card border-primary/10 hover:border-secondary/50 transition-all cursor-pointer group"
+                  >
+                    <div className="p-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-2xl font-bold">
+                          {band.name[0]}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-xl">{band.name}</h3>
+                          <p className="text-sm text-muted-foreground">{band.genre}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-muted-foreground">
+                          <Icon name="Users" size={16} className="inline mr-1" />
+                          {band.listeners} слушателей
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="flex-1 border-secondary text-secondary hover:bg-secondary hover:text-black">
+                          Слушать
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-primary/20 hover:border-primary hover:text-primary"
+                          onClick={() => openReviews('band', band.id)}
+                        >
+                          <Icon name="MessageSquare" size={16} />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'upload' && (
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center gap-3 mb-6">
+              <Icon name="Upload" size={28} className="text-accent" />
+              <h2 className="text-3xl font-bold">Загрузить трек</h2>
+            </div>
+            <Card className="bg-card border-primary/10 p-8">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Название трека</label>
+                  <Input placeholder="Введите название..." className="bg-muted border-primary/20" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Исполнитель</label>
+                  <Input placeholder="Имя группы или артиста..." className="bg-muted border-primary/20" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Жанр</label>
+                  <Input placeholder="Например: Thrash Metal..." className="bg-muted border-primary/20" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Аудиофайл</label>
+                  <div className="border-2 border-dashed border-primary/30 rounded-lg p-12 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                    <Icon name="Upload" size={48} className="mx-auto mb-4 text-primary" />
+                    <p className="text-muted-foreground mb-2">Перетащите файл сюда или нажмите для выбора</p>
+                    <p className="text-sm text-muted-foreground">MP3, WAV, FLAC (макс. 50MB)</p>
+                  </div>
+                </div>
+                <Button className="w-full bg-accent hover:bg-accent/90 text-white">
+                  <Icon name="Upload" size={20} className="mr-2" />
+                  Загрузить трек
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'bands' && (
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <Icon name="Music2" size={28} className="text-secondary" />
+              <h2 className="text-3xl font-bold">Все группы</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {topBands.map((band) => (
+                <Card 
+                  key={band.id} 
+                  className="bg-card border-primary/10 hover:border-secondary/50 transition-all cursor-pointer"
+                >
+                  <div className="p-6 text-center">
+                    <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-3xl font-bold">
+                      {band.name[0]}
+                    </div>
+                    <h3 className="font-bold text-lg mb-1">{band.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-3">{band.genre}</p>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      <Icon name="Users" size={14} className="inline mr-1" />
+                      {band.listeners}
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <Button size="sm" className="w-full bg-secondary hover:bg-secondary/90 text-black">
+                        Слушать
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="w-full border-primary/20 hover:border-primary hover:text-primary"
+                        onClick={() => openReviews('band', band.id)}
+                      >
+                        <Icon name="MessageSquare" size={16} className="mr-2" />
+                        Отзывы
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
@@ -551,6 +876,136 @@ const Index = () => {
         </div>
       )}
 
+      {showReviews && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowReviews(false)}>
+          <Card className="bg-card border-primary/20 p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Отзывы</h3>
+              <Button variant="ghost" size="icon" onClick={() => setShowReviews(false)}>
+                <Icon name="X" size={20} />
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-6">{getItemName()}</p>
+            
+            <div className="mb-6 p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold mb-3">Оставить отзыв</h4>
+              <div className="mb-3">
+                <label className="block text-sm mb-2">Оценка</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map(rating => (
+                    <button
+                      key={rating}
+                      onClick={() => setNewReviewRating(rating)}
+                      className="transition-transform hover:scale-110"
+                    >
+                      <Icon 
+                        name="Star" 
+                        size={24} 
+                        className={rating <= newReviewRating ? "fill-primary text-primary" : "text-muted-foreground"}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="block text-sm mb-2">Ваш отзыв</label>
+                <Input 
+                  placeholder="Напишите что думаете..."
+                  className="bg-background border-primary/20"
+                  value={newReviewText}
+                  onChange={(e) => setNewReviewText(e.target.value)}
+                />
+              </div>
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90 text-black"
+                onClick={submitReview}
+                disabled={!newReviewText.trim()}
+              >
+                Отправить
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {getReviewsForItem().map(review => (
+                <div key={review.id} className="p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-sm font-bold">
+                      {review.userAvatar}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold">{review.userName}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Icon 
+                              key={i} 
+                              name="Star" 
+                              size={14} 
+                              className={i < review.rating ? "fill-primary text-primary" : "text-muted-foreground"}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-muted-foreground">{review.date}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm">{review.text}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {showCommunity && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setShowCommunity(false)}>
+          <Card className="bg-card border-primary/20 p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold">Сообщество рокеров</h3>
+                <p className="text-sm text-muted-foreground">Люди с похожим музыкальным вкусом</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setShowCommunity(false)}>
+                <Icon name="X" size={20} />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {suggestedUsers.map(user => (
+                <Card key={user.id} className="bg-muted/50 border-primary/10 p-6">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-xl font-bold flex-shrink-0">
+                      {user.avatar}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-lg mb-1">{user.name}</h4>
+                      <p className="text-sm text-muted-foreground mb-2">{user.bio}</p>
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {user.favoriteGenres.map((genre, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 rounded-full bg-secondary/20 text-secondary">
+                            {genre}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Icon name="Music" size={16} className="text-primary" />
+                      <span>{user.commonTracks} общих треков</span>
+                    </div>
+                    <Button size="sm" className="bg-primary hover:bg-primary/90 text-black">
+                      <Icon name="UserPlus" size={16} className="mr-2" />
+                      Добавить
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
       {currentTrack && (
         <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-lg border-t border-primary/20 z-50">
           <div className="max-w-7xl mx-auto px-4 py-4">
@@ -582,7 +1037,13 @@ const Index = () => {
                   <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
                     <Icon name="Shuffle" size={20} />
                   </Button>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-muted-foreground hover:text-white"
+                    onClick={playPreviousTrack}
+                    disabled={currentPlaylistTracks.length === 0}
+                  >
                     <Icon name="SkipBack" size={20} />
                   </Button>
                   <Button 
@@ -592,7 +1053,13 @@ const Index = () => {
                   >
                     <Icon name={isPlaying ? 'Pause' : 'Play'} size={24} />
                   </Button>
-                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-muted-foreground hover:text-white"
+                    onClick={playNextTrack}
+                    disabled={currentPlaylistTracks.length === 0}
+                  >
                     <Icon name="SkipForward" size={20} />
                   </Button>
                   <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
