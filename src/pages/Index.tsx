@@ -57,6 +57,9 @@ const Index = () => {
     { id: 3, name: 'Led Zeppelin', genre: 'Hard Rock', listeners: '22.1M' },
     { id: 4, name: 'Black Sabbath', genre: 'Doom Metal', listeners: '12.4M' },
     { id: 5, name: 'Slayer', genre: 'Thrash Metal', listeners: '8.9M' },
+    { id: 6, name: 'Король и Шут', genre: 'Punk Rock', listeners: '5.3M' },
+    { id: 7, name: 'Кино', genre: 'Rock', listeners: '7.8M' },
+    { id: 8, name: 'Сектор Газа', genre: 'Punk Rock', listeners: '4.1M' },
   ];
 
   const playTrack = (track: Track) => {
@@ -128,6 +131,13 @@ const Index = () => {
   const deletePlaylist = (playlistId: number) => {
     if (playlistId === 1) return;
     setPlaylists(playlists.filter(p => p.id !== playlistId));
+  };
+
+  const playPlaylist = (playlistId: number) => {
+    const tracks = getPlaylistTracks(playlistId);
+    if (tracks.length > 0) {
+      playTrack(tracks[0]);
+    }
   };
 
   return (
@@ -398,6 +408,7 @@ const Index = () => {
                       size="sm" 
                       className="w-full bg-primary hover:bg-primary/90 text-black"
                       disabled={playlist.trackIds.length === 0}
+                      onClick={() => playPlaylist(playlist.id)}
                     >
                       <Icon name="Play" size={16} className="mr-2" />
                       {playlist.trackIds.length === 0 ? 'Пусто' : 'Слушать'}
